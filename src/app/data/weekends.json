@@ -1,0 +1,32 @@
+[
+  {
+    "id": 1,
+    "branch": "Uttara Branch",
+    "officeId": 2,  
+    "weekendDays": ["Saturday", "Monday"],
+    "start": "11:00 AM",
+    "end": "07:30 AM",
+    "createdAt": "13-10-2025",
+    "status": "active"
+  },
+  {
+    "id": 2,
+    "branch": "Karwan Bazar Branch",
+    "officeId": 1,
+    "weekendDays": ["Saturday", "Friday"],
+    "start": "11:00 AM",
+    "end": "07:30 PM",
+    "createdAt": "15-09-2025",
+    "status": "active"
+  },
+  {
+    "id": 3,
+    "branch": "Motijheel Branch",
+    "officeId": 5,
+    "weekendDays": ["Saturday", "Sunday"],
+    "start": "11:00 AM",
+    "end": "07:30 AM",
+    "createdAt": "25-08-2025",
+    "status": "active"
+  }
+]
