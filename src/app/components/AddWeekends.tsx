@@ -1,14 +1,14 @@
 "use client";
 
 import { Filter } from "lucide-react";
-
-interface Props {
-  toggleFilter: () => void;
-  onAddClick: () => void;
-}
+import {useUIStore} from "@/app/store/uiStore"
 
 
-export default function AddWeekend({ toggleFilter, onAddClick }: Props) {
+
+
+export default function AddWeekend() {
+    const { toggleFilter, openAddModal } = useUIStore();
+
   return (
     <div className="flex pt-5 justify-between items-center mb-3 px-8">
       <h1 className="text-2xl font-semibold text-white">Weekends</h1>
@@ -22,7 +22,7 @@ export default function AddWeekend({ toggleFilter, onAddClick }: Props) {
         </button>
 
         <button
-          onClick={onAddClick}
+          onClick={openAddModal}
           className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-xl transition"
         >
           + Add Weekend

@@ -2,13 +2,21 @@
 
 import { useState } from "react";
 import { Weekend } from "../types/Weekend";
-import { Pencil, Trash2, Calendar, Clock, Building2, MapPin } from "lucide-react";
+import {
+  Pencil,
+  Trash2,
+  Calendar,
+  Clock,
+  Building2,
+  MapPin,
+} from "lucide-react";
+import { useUIStore } from "@/app/store/uiStore";
 
 interface Props {
   data: Weekend;
   onDelete: (id: number) => void;
-  onEdit: (data: Weekend) => void; 
 }
+
 const formatDisplayTime = (time: string) => {
   if (!time) return "";
 
@@ -21,31 +29,31 @@ const formatDisplayTime = (time: string) => {
   return `${hour.toString().padStart(2, "0")}:${m} ${ampm}`;
 };
 
-export default function WeekendCard({ data, onDelete , onEdit }: Props) {
+export default function WeekendCard({ data, onDelete }: Props) {
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // ✅ Zustand থেকে modal open function নিচ্ছি
+  const openEditModal = useUIStore((state) => state.openEditModal);
 
   // Delete with animation
-
   const handleDeleteClick = () => {
     setIsDeleting(true);
     setTimeout(() => {
       onDelete(data.id);
-    }, 300); 
+    }, 300);
   };
-// onEdit handler
 
-const handleEditClick = () => {
-  onEdit(data);
-};
+  // ✅ Edit now uses Zustand
+  const handleEditClick = () => {
+    openEditModal(data);
+  };
 
   return (
     <div
       className={`relative bg-[#11213a] border border-blue-500/20 rounded-2xl p-6 shadow-md hover:shadow-blue-500 transition-all duration-300 ${
         isDeleting ? "opacity-0 scale-95" : "opacity-100 scale-100"
       }`}
- >
-
+    >
       {/* Left Blue Border */}
       <div className="absolute left-0 top-0 h-full w-1 bg-blue-500 rounded-l-2xl" />
 
@@ -62,12 +70,13 @@ const handleEditClick = () => {
         </div>
 
         <div className="flex gap-2">
-
           {/* Edit button */}
-          <button className="p-2 rounded-lg bg-gray-700 hover:bg-gray-600" onClick={handleEditClick}>
+          <button
+            className="p-2 rounded-lg bg-gray-700 hover:bg-gray-600"
+            onClick={handleEditClick}
+          >
             <Pencil size={16} />
           </button>
-
 
           {/* Delete button */}
           <button
@@ -107,11 +116,15 @@ const handleEditClick = () => {
         <div className="flex justify-between text-sm text-gray-400">
           <div>
             <p>Start:</p>
-            <p className="text-white"> {formatDisplayTime(data.start)}</p>
+            <p className="text-white">
+              {formatDisplayTime(data.start)}
+            </p>
           </div>
           <div>
             <p>End:</p>
-            <p className="text-white"> {formatDisplayTime(data.end)}</p>
+            <p className="text-white">
+              {formatDisplayTime(data.end)}
+            </p>
           </div>
         </div>
       </div>

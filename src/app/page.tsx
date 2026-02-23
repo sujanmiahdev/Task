@@ -9,47 +9,23 @@ import AddWeekend from "./components/AddWeekends";
 import allWeekends from "./data/weekends.json";
 import { Weekend } from "./types/Weekend";
 import EditWeekendModal from "./components/EditWeekendModal";
-
+import { useUIStore } from "@/app/store/uiStore";
+import { useFilterStore} from "@/app/store/useFilterStore"
 
 export default function Page() {
-  // Filter States
-  const [search, setSearch] = useState("");
-  const [office, setOffice] = useState("");
-  const [weekendDayFilter, setWeekendDayFilter] = useState("");
-  const [showFilter, setShowFilter] = useState(true);
 
-  // Main Weekend State (Single Source of Truth)
+const { isFilterOpen } = useUIStore();
+const { search, office, weekendDayFilter } = useFilterStore();
+
+  /* Weekend Data */
   const [weekends, setWeekends] = useState<Weekend[]>(allWeekends);
 
-  // Modal State
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingOfficeId, setEditingOfficeId] = useState<number | null>(null);
-
-  // Clear Filters
-  const clearFilters = () => {
-    setSearch("");
-    setOffice("");
-    setWeekendDayFilter("");
-  };
-
-  // Delete Weekend
+  /* Delete */
   const handleDelete = (id: number) => {
     setWeekends((prev) => prev.filter((w) => w.id !== id));
   };
 
-  // Open Modal for Edit
-  const openModalForOffice = (officeId: number) => {
-    setEditingOfficeId(officeId);
-    setIsModalOpen(true);
-  };
-
-  // Open Modal for Add (will update selected branch only)
-  const openModalForAdd = () => {
-    setEditingOfficeId(null);
-    setIsModalOpen(true);
-  };
-
-  // Save from Modal (ONLY UPDATE — No New Branch Creation)
+  /* Save Weekend */
   const handleSave = (officeId: number, selectedDays: string[]) => {
     setWeekends((prev) =>
       prev.map((w) =>
@@ -58,29 +34,18 @@ export default function Page() {
           : w
       )
     );
+  };
 
-    setIsModalOpen(false);
-    setEditingOfficeId(null);
+  /* Update Edit Modal Data */
+  const handleUpdate = (updatedData: Weekend) => {
+    setWeekends((prev) =>
+      prev.map((item) =>
+        item.id === updatedData.id ? updatedData : item
+      )
+    );
   };
 
 
-  const [selectedWeekend, setSelectedWeekend] = useState<Weekend | null>(null);
-const [isEditOpen, setIsEditOpen] = useState(false);
-
-const handleEdit = (data: Weekend) => {
-  setSelectedWeekend(data);
-  setIsEditOpen(true);
-};
-
-const handleUpdate = (updatedData: Weekend) => {
-  setWeekends((prev) =>
-    prev.map((item) =>
-      item.id === updatedData.id ? updatedData : item
-    )
-  );
-};
-
-  // Filtering Logic
   const filteredWeekends = weekends.filter(
     (w) =>
       (w.branch.toLowerCase().includes(search.toLowerCase()) ||
@@ -92,63 +57,47 @@ const handleUpdate = (updatedData: Weekend) => {
         ? w.weekendDays.includes(weekendDayFilter)
         : true)
   );
-
   return (
     <div className="bg-black min-h-screen">
+
       <Navbar />
 
       {/* Header */}
-      <AddWeekend
-        toggleFilter={() => setShowFilter(!showFilter)}
-        onAddClick={openModalForAdd}
-      />
+      <AddWeekend />
 
-      {/* FilterBar */}
+      {/* Filter */}
       <div
-        className={`transition-all duration-300 ease-in-out overflow-hidden ${
-          showFilter
-            ? "max-h-96 opacity-100 translate-y-0"
-            : "max-h-0 opacity-0 -translate-y-2"
+        className={`transition-all duration-300 overflow-hidden ${
+          isFilterOpen
+            ? "max-h-96 opacity-100"
+            : "max-h-0 opacity-0"
         }`}
       >
-        <FilterBar
-          search={search}
-          setSearch={setSearch}
-          office={office}
-          setOffice={setOffice}
-          weekendDayFilter={weekendDayFilter}
-          setWeekendDayFilter={setWeekendDayFilter}
-          clearFilters={clearFilters}
-        />
+        <FilterBar />
       </div>
 
-      {/* Weekend Cards */}
+      {/* Cards */}
       <div className="grid md:grid-cols-3 gap-6 mt-6 px-8">
         {filteredWeekends.map((item) => (
           <WeekendCard
             key={item.id}
             data={item}
             onDelete={handleDelete}
-            // onEdit={() => openModalForOffice(item.officeId)}
-             onEdit={handleEdit}
+           
           />
         ))}
       </div>
 
-      {/* Modal */}
+      {/* Modals */}
       <WeekendModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
         onSave={handleSave}
-        officeId={editingOfficeId}
         weekends={weekends}
       />
-<EditWeekendModal
-  isOpen={isEditOpen}
-  onClose={() => setIsEditOpen(false)}
-  onUpdate={handleUpdate}
-  data={selectedWeekend}
-/>
+
+      <EditWeekendModal
+        onUpdate={handleUpdate}
+      />
+
     </div>
   );
 }

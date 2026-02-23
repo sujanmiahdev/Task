@@ -2,87 +2,73 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Weekend } from "../types/Weekend";
-
-
-
-interface WeekendModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSave: (officeId: number, weekendDays: string[]) => void;
-  officeId?: number | null;
-  weekends: Weekend[];
-}
+import { useUIStore } from "@/app/store/uiStore";
 
 export default function WeekendModal({
-  isOpen,
-  onClose,
   onSave,
-  officeId,
   weekends,
-}: WeekendModalProps) {
+}: {
+  onSave: (officeId: number, weekendDays: string[]) => void;
+  weekends: Weekend[];
+}) {
+
+  const {
+    isAddModalOpen,
+    closeAddModal,
+    selectedWeekend,
+  } = useUIStore();
+
   const [selectedOffice, setSelectedOffice] = useState<number | "">("");
   const [selectedDays, setSelectedDays] = useState<Record<string, boolean>>({});
+
   const modalRef = useRef<HTMLDivElement>(null);
 
-  // 🔥 Load office data when editing
+  /* Load Data when modal open */
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isAddModalOpen && !selectedWeekend) return;
 
-    if (officeId) {
-      setSelectedOffice(officeId);
+    if (selectedWeekend) {
+      setSelectedOffice(selectedWeekend.officeId);
 
-      const officeData = weekends.find(
-        (w) => w.officeId === officeId
-      );
+      const daysObj: Record<string, boolean> = {};
 
-      if (officeData) {
-        const daysObj: Record<string, boolean> = {};
-        officeData.weekendDays.forEach((day) => {
-          daysObj[day] = true;
-        });
-        setSelectedDays(daysObj);
-      }
+      selectedWeekend.weekendDays.forEach((day) => {
+        daysObj[day] = true;
+      });
+
+      setSelectedDays(daysObj);
     } else {
       setSelectedOffice("");
       setSelectedDays({});
     }
-  }, [officeId, isOpen, weekends]);
 
+  }, [isAddModalOpen, selectedWeekend]);
 
-  //  ESC key close
+  /* ESC Close */
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") closeAddModal();
     };
 
-    if (isOpen) {
+    if (isAddModalOpen) {
       window.addEventListener("keydown", handleEsc);
-      document.body.style.overflow = "hidden"; // Scroll lock
+      document.body.style.overflow = "hidden";
     }
 
     return () => {
       window.removeEventListener("keydown", handleEsc);
       document.body.style.overflow = "auto";
     };
-  }, [isOpen, onClose]);
 
-  //  Outside click close
-  const handleOutsideClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
-      onClose();
-    }
-  };
+  }, [isAddModalOpen, closeAddModal]);
+
+  if (!isAddModalOpen) return null;
 
   const toggleDay = (day: string) => {
     setSelectedDays((prev) => ({
       ...prev,
       [day]: !prev[day],
     }));
-  };
-
-  const handleReset = () => {
-    setSelectedOffice("");
-    setSelectedDays({});
   };
 
   const handleSaveClick = () => {
@@ -93,10 +79,8 @@ export default function WeekendModal({
     );
 
     onSave(Number(selectedOffice), daysSelected);
-    onClose();
+    closeAddModal();
   };
-
-  if (!isOpen) return null;
 
   const days = [
     "Saturday",
@@ -111,39 +95,38 @@ export default function WeekendModal({
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
-      onClick={handleOutsideClick}
+      onClick={(e) => {
+        if (!modalRef.current?.contains(e.target as Node)) {
+          closeAddModal();
+        }
+      }}
     >
       <div
         ref={modalRef}
-        className="w-150 rounded-2xl bg-[#1f2a37] p-8 shadow-2xl text-white relative transition-all duration-300 scale-100"
+        className="w-150 rounded-2xl bg-[#1f2a37] p-8 shadow-2xl text-white"
+        onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-semibold">
-            {officeId ? "Edit Weekend" : "Add Weekend"}
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-white text-xl"
-          >
-            ✕
-          </button>
-        </div>
+
+        <h2 className="text-2xl font-semibold mb-6 text-center">
+          {selectedWeekend ? "Edit Weekend" : "Add Weekend"}
+        </h2>
 
         {/* Office Select */}
         <div className="mb-6">
           <label className="block mb-2 text-sm text-gray-300">
             Select Office
           </label>
+
           <select
             value={selectedOffice}
             onChange={(e) =>
               setSelectedOffice(Number(e.target.value))
             }
-            disabled={!!officeId}
-            className="w-full rounded-lg bg-[#2b3746] p-3 text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            disabled={!!selectedWeekend}
+            className="w-full rounded-lg bg-[#2b3746] p-3 text-gray-300"
           >
-            <option value="">Select Office Here...</option>
+            <option value="">Select Office</option>
+
             {weekends.map((item) => (
               <option key={item.id} value={item.officeId}>
                 {item.branch}
@@ -152,14 +135,15 @@ export default function WeekendModal({
           </select>
         </div>
 
-        {/* Days Toggle Grid */}
-        <div className="grid grid-cols-3 gap-6 mb-8">
+        {/* Days */}
+        <div className="grid grid-cols-3 gap-4 mb-8">
           {days.map((day) => (
-            <div key={day} className="flex items-center justify-between">
-              <span className="text-lg">{day}</span>
+            <div key={day} className="flex justify-between items-center">
+              <span>{day}</span>
+
               <button
                 onClick={() => toggleDay(day)}
-                className={`relative w-12 h-6 rounded-full transition ${
+                className={`w-12 h-6 rounded-full relative transition ${
                   selectedDays[day] ? "bg-green-600" : "bg-gray-600"
                 }`}
               >
@@ -177,18 +161,19 @@ export default function WeekendModal({
         <div className="flex justify-between">
           <button
             onClick={handleSaveClick}
-            className="w-[48%] bg-blue-600 hover:bg-blue-700 py-3 rounded-xl text-lg font-medium transition"
+            className="w-[48%] bg-blue-600 py-3 rounded-xl"
           >
             Save
           </button>
 
           <button
-            onClick={handleReset}
-            className="w-[48%] border border-gray-500 py-3 rounded-xl text-lg font-medium hover:bg-gray-700 transition"
+            onClick={closeAddModal}
+            className="w-[48%] bg-gray-600 py-3 rounded-xl"
           >
-            Reset
+            Cancel
           </button>
         </div>
+
       </div>
     </div>
   );

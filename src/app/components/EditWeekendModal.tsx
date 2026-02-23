@@ -2,16 +2,9 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Weekend } from "../types/Weekend";
-
-interface Props {
-  isOpen: boolean;
-  onClose: () => void;
-  onUpdate: (updatedData: Weekend) => void;
-  data: Weekend | null;
-}
+import { useUIStore } from "@/app/store/uiStore";
 
 /* Time Helpers */
-
 const formatDisplayTime = (time: string) => {
   if (!time) return "";
 
@@ -24,45 +17,52 @@ const formatDisplayTime = (time: string) => {
   return `${hour.toString().padStart(2, "0")}:${m} ${ampm}`;
 };
 
-
-
 export default function EditWeekendModal({
-  isOpen,
-  onClose,
   onUpdate,
-  data,
-}: Props) {
+}: {
+  onUpdate: (updatedData: Weekend) => void;
+}) {
+
+  const {
+    isEditModalOpen,
+    closeEditModal,
+    selectedWeekend
+  } = useUIStore();
 
   const [formData, setFormData] = useState<Weekend | null>(null);
   const modalRef = useRef<HTMLDivElement>(null);
 
-  /* Load Data */
-  useEffect(() => {
-    if (isOpen && data) {
-      setFormData({ ...data });
-    }
-  }, [isOpen, data]);
 
-  /* ESC Key Close */
+useEffect(() => {
+  if (selectedWeekend) {
+    setFormData({ ...selectedWeekend });
+  }
+}, [selectedWeekend]);
+
+  /* ✅ ESC Close */
   useEffect(() => {
     const handleEsc = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape") closeEditModal();
     };
 
-    window.addEventListener("keydown", handleEsc);
+    if (isEditModalOpen) {
+      window.addEventListener("keydown", handleEsc);
+      document.body.style.overflow = "hidden";
+    }
 
-    return () => window.removeEventListener("keydown", handleEsc);
-  }, [onClose]);
+    return () => {
+      window.removeEventListener("keydown", handleEsc);
+      document.body.style.overflow = "auto";
+    };
+  }, [isEditModalOpen, closeEditModal]);
 
-  if (!isOpen || !formData) return null;
+  /* ❗ Modal Hide */
+  if (!isEditModalOpen || !formData) return null;
 
   /* Outside Click Close */
   const handleOutsideClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (
-      modalRef.current &&
-      !modalRef.current.contains(e.target as Node)
-    ) {
-      onClose();
+    if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
+      closeEditModal();
     }
   };
 
@@ -73,8 +73,10 @@ export default function EditWeekendModal({
   };
 
   const handleSubmit = () => {
-    onUpdate(formData);
-    onClose();
+    if (formData) {
+      onUpdate(formData);
+    }
+    closeEditModal();
   };
 
   return (
@@ -89,7 +91,7 @@ export default function EditWeekendModal({
       >
 
         <h2 className="text-white text-xl font-semibold text-center mb-6">
-         Edit Weekend Card
+          Edit Weekend Card
         </h2>
 
         <div className="grid grid-cols-2 gap-4">
@@ -174,8 +176,9 @@ export default function EditWeekendModal({
 
         {/* Buttons */}
         <div className="flex justify-end gap-4 mt-6">
+
           <button
-            onClick={onClose}
+            onClick={closeEditModal}
             className="px-5 py-2 bg-gray-600 hover:bg-gray-500 rounded-lg text-white"
           >
             Cancel
@@ -187,6 +190,7 @@ export default function EditWeekendModal({
           >
             Update
           </button>
+
         </div>
 
       </div>
