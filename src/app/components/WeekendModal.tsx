@@ -28,6 +28,7 @@ export default function WeekendModal({
     if (!isAddModalOpen && !selectedWeekend) return;
 
     if (selectedWeekend) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelectedOffice(selectedWeekend.officeId);
 
       const daysObj: Record<string, boolean> = {};

@@ -3,43 +3,23 @@
 import { useState, useEffect, useRef } from "react";
 import { Weekend } from "../types/Weekend";
 import { useUIStore } from "@/app/store/uiStore";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-/* Time Helpers */
-const formatDisplayTime = (time: string) => {
-  if (!time) return "";
-
-  const [h, m] = time.split(":");
-  let hour = Number(h);
-
-  const ampm = hour >= 12 ? "PM" : "AM";
-  hour = hour % 12 || 12;
-
-  return `${hour.toString().padStart(2, "0")}:${m} ${ampm}`;
-};
-
-export default function EditWeekendModal({
-  onUpdate,
-}: {
-  onUpdate: (updatedData: Weekend) => void;
-}) {
-
-  const {
-    isEditModalOpen,
-    closeEditModal,
-    selectedWeekend
-  } = useUIStore();
+export default function EditWeekendModal() {
+  const { isEditModalOpen, closeEditModal, selectedWeekend } = useUIStore();
 
   const [formData, setFormData] = useState<Weekend | null>(null);
   const modalRef = useRef<HTMLDivElement>(null);
+  const queryClient = useQueryClient();
 
+  /* Load selected data */
+  useEffect(() => {
+    if (selectedWeekend) {
+      setFormData({ ...selectedWeekend });
+    }
+  }, [selectedWeekend]);
 
-useEffect(() => {
-  if (selectedWeekend) {
-    setFormData({ ...selectedWeekend });
-  }
-}, [selectedWeekend]);
-
-  /* ✅ ESC Close */
+  /* ESC Close */
   useEffect(() => {
     const handleEsc = (event: KeyboardEvent) => {
       if (event.key === "Escape") closeEditModal();
@@ -56,10 +36,36 @@ useEffect(() => {
     };
   }, [isEditModalOpen, closeEditModal]);
 
-  /* ❗ Modal Hide */
+  /* Mutation */
+  const updateMutation = useMutation({
+    mutationFn: async (updatedData: Weekend) => {
+      const res = await fetch(
+        `http://localhost:5000/weekends/${updatedData.id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(updatedData),
+        }
+      );
+
+      if (!res.ok) {
+        throw new Error("Failed to update weekend");
+      }
+
+      return res.json();
+    },
+
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["weekends"] });
+      closeEditModal();
+    },
+  });
+
+  /* Modal Hide */
   if (!isEditModalOpen || !formData) return null;
 
-  /* Outside Click Close */
   const handleOutsideClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
       closeEditModal();
@@ -67,16 +73,13 @@ useEffect(() => {
   };
 
   const handleChange = (field: keyof Weekend, value: any) => {
-    setFormData((prev) =>
-      prev ? { ...prev, [field]: value } : prev
-    );
+    setFormData((prev) => (prev ? { ...prev, [field]: value } : prev));
   };
 
   const handleSubmit = () => {
     if (formData) {
-      onUpdate(formData);
+      updateMutation.mutate(formData);
     }
-    closeEditModal();
   };
 
   return (
@@ -89,21 +92,17 @@ useEffect(() => {
         className="bg-[#0f1b2e] border border-blue-500/20 rounded-2xl p-8 w-130 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-
         <h2 className="text-white text-xl font-semibold text-center mb-6">
           Edit Weekend Card
         </h2>
 
         <div className="grid grid-cols-2 gap-4">
-
           {/* Branch */}
           <div className="col-span-2">
             <label className="text-sm text-gray-400">Branch Name</label>
             <input
               value={formData.branch}
-              onChange={(e) =>
-                handleChange("branch", e.target.value)
-              }
+              onChange={(e) => handleChange("branch", e.target.value)}
               className="w-full mt-1 p-2 rounded-lg bg-gray-800 text-white border border-gray-600"
             />
           </div>
@@ -127,9 +126,7 @@ useEffect(() => {
             <input
               type="time"
               value={formData.start}
-              onChange={(e) =>
-                handleChange("start", e.target.value)
-              }
+              onChange={(e) => handleChange("start", e.target.value)}
               className="w-full mt-1 p-2 rounded-lg bg-gray-800 text-white border border-gray-600"
             />
           </div>
@@ -140,18 +137,14 @@ useEffect(() => {
             <input
               type="time"
               value={formData.end}
-              onChange={(e) =>
-                handleChange("end", e.target.value)
-              }
+              onChange={(e) => handleChange("end", e.target.value)}
               className="w-full mt-1 p-2 rounded-lg bg-gray-800 text-white border border-gray-600"
             />
           </div>
 
           {/* Weekend Days */}
           <div className="col-span-2">
-            <label className="text-sm text-gray-400">
-              Weekend Days
-            </label>
+            <label className="text-sm text-gray-400">Weekend Days</label>
             <input
               value={formData.weekendDays.join(", ")}
               onChange={(e) =>
@@ -163,22 +156,26 @@ useEffect(() => {
               className="w-full mt-1 p-2 rounded-lg bg-gray-800 text-white border border-gray-600"
             />
           </div>
-
         </div>
 
         {/* Created At */}
         <div className="mt-6 pt-4 border-t border-gray-700">
           <label className="text-xs text-gray-400">Created At</label>
-          <p className="text-gray-300 text-sm">
-            {formData.createdAt}
-          </p>
+          <p className="text-gray-300 text-sm">{formData.createdAt}</p>
         </div>
+
+        {/* Error */}
+        {updateMutation.isError && (
+          <p className="text-red-400 text-sm mt-3">
+            Failed to update. Try again.
+          </p>
+        )}
 
         {/* Buttons */}
         <div className="flex justify-end gap-4 mt-6">
-
           <button
             onClick={closeEditModal}
+            disabled={updateMutation.isPending}
             className="px-5 py-2 bg-gray-600 hover:bg-gray-500 rounded-lg text-white"
           >
             Cancel
@@ -186,13 +183,12 @@ useEffect(() => {
 
           <button
             onClick={handleSubmit}
+            disabled={updateMutation.isPending}
             className="px-5 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-white"
           >
-            Update
+            {updateMutation.isPending ? "Updating..." : "Update"}
           </button>
-
         </div>
-
       </div>
     </div>
   );

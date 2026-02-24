@@ -15,6 +15,7 @@ import { useUIStore } from "@/app/store/uiStore";
 interface Props {
   data: Weekend;
   onDelete: (id: number) => void;
+  onEdit: () => void;
 }
 
 const formatDisplayTime = (time: string) => {
@@ -32,7 +33,7 @@ const formatDisplayTime = (time: string) => {
 export default function WeekendCard({ data, onDelete }: Props) {
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // ✅ Zustand থেকে modal open function নিচ্ছি
+  //  Zustand modal open function for edit
   const openEditModal = useUIStore((state) => state.openEditModal);
 
   // Delete with animation
@@ -43,7 +44,7 @@ export default function WeekendCard({ data, onDelete }: Props) {
     }, 300);
   };
 
-  // ✅ Edit now uses Zustand
+  //  Edit now uses Zustand
   const handleEditClick = () => {
     openEditModal(data);
   };
